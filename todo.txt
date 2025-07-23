@@ -1,0 +1,146 @@
+Cross-Platform SOC Toolkit — Expanded To-Do with Work Order & Timelines
+Brent Barrows
+July 22nd 2025
+---------------------------------------------------
+Phase 1: Core Foundation & Critical Blue Team Features (Weeks 1-4)
+---------------------------------------------------
+
+GENERAL TOOLKIT
+- [ ] Centralized logging & SIEM integration
+    - Define log format & schema
+    - Implement log collection & storage
+    - Add support for external SIEM (Splunk, ELK)
+- [ ] User authentication & RBAC
+    - Implement basic login system
+    - Define roles & permissions for Red/Blue/Purple teams
+- [ ] UI/UX improvements
+    - Colorize menus & add clear screen
+    - Standardize input validation & error handling
+- [ ] Config profiles for Windows/Linux
+    - Detect OS & load appropriate configs
+- [ ] Exception handling & input sanitization throughout
+- [ ] Convert team tool folders to Python packages with `__init__.py` for importability
+- [ ] Ensure each tool defines a `run()` method or tool metadata for autodetection
+
+
+BLUE TEAM TOOLS
+- [ ] AD User Privilege Audit
+    - Expand nested group enumeration
+    - Risk scoring (e.g., membership in sensitive groups)
+- [ ] Event Log Analyzer (basic)
+    - Read Windows Event Logs & Linux syslog
+    - Simple keyword-based anomaly detection
+- [ ] Patch Status Checker
+    - Query Windows updates & Linux package managers
+- [ ] Firewall/AV Status Checker
+    - Check common AV/firewall status via CLI
+
+SYSTEM & NETWORK DIAGNOSTICS
+- [ ] System File Checker (basic)
+- [ ] Ping Test with stats
+- [ ] IP and MAC Address Display
+
+---------------------------------------------------
+Phase 2: Red Team Build-Out & Malware Scanning (Weeks 5-8)
+---------------------------------------------------
+
+RED TEAM TOOLS
+- [ ] Vulnerability Scan Enhancements
+    - Parse nmap XML output
+    - Add masscan integration
+- [ ] Credential Dumping Simulation (Windows-focused)
+    - Automate mimikatz invocation & result capture
+- [ ] Lateral Movement Simulation
+    - CrackMapExec automation
+    - SSH lateral scripts for Linux
+- [ ] Persistence Checker
+    - Registry autorun and scheduled task scans (Windows)
+    - Cron & systemd checks (Linux)
+
+MALWARE SCANNER
+- [ ] Registry & Scheduled Task Scan Expansion
+- [ ] File System & Process Scan
+    - Identify suspicious binaries, unknown processes
+- [ ] Reporting with severity classification
+- [ ] Integration with YARA or ClamAV signatures
+
+---------------------------------------------------
+Phase 3: Purple Team Integration & Advanced Blue Team (Weeks 9-12)
+---------------------------------------------------
+
+PURPLE TEAM TOOLS
+- [ ] Attack simulation automation (link Red→Blue)
+- [ ] SIEM Connectors & dashboards
+- [ ] Threat Intelligence Feed integration
+- [ ] Incident response playbooks & automation
+
+BLUE TEAM ADVANCED
+- [ ] File Integrity Checker
+- [ ] User Session Tracker
+- [ ] Backup Verification
+- [ ] Network Share Auditor
+
+---------------------------------------------------
+Phase 4: Utility Expansion, Automation & Packaging (Weeks 13-16)
+---------------------------------------------------
+
+UTILITY & FILE MGMT
+- [ ] Directory listing with advanced filtering/export
+- [ ] File search with regex & hashing
+- [ ] Disk usage reports & cleanup tools
+
+GENERAL TOOLKIT IMPROVEMENTS
+- [ ] Remote execution framework (SSH/WinRM)
+- [ ] Containerize Red Team tools for easy deployment
+- [ ] Multi-threading or async improvements for parallel scans
+- [ ] Cross-platform packaging & installer creation
+- [ ] Automated updates & patching system
+
+---------------------------------------------------
+Suggested Work Order Summary July 22nd 2025
+---------------------------------------------------
+
+Week(s)   | Focus Area                  | Goal
+--------- | -------------------------- | ----------------------------------------------------
+1 - 4     | Core toolkit + Blue Team    | Build foundational features & basic Blue Team tools for immediate value
+5 - 8     | Red Team + Malware Scanner  | Expand offensive tool automation, build malware detection & analysis
+9 - 12    | Purple Team + Advanced Blue | Integrate attack/defense workflows, add advanced monitoring and IR capabilities
+13 - 16   | Utilities + Packaging       | Complete utility tools, improve automation, package for distribution
+
+---------------------------------------------------
+Expanded Subtask Suggestions
+---------------------------------------------------
+
+AD User Privilege Audit
+- Implement LDAP queries for nested group membership
+- Include detection for risky groups and stale accounts
+- Export reports as CSV or JSON for integration
+
+Event Log Analyzer
+- Tail event logs in real-time
+- Implement basic anomaly detection rules (failed logins, privilege changes)
+- Support exporting alerts to SIEM or email
+
+Credential Dumping Simulation
+- Automate mimikatz with command options for different dump types
+- Implement output parsing and sanitize sensitive info
+- Simulate credential dumping stealth techniques
+
+Lateral Movement
+- Automate SMB share scanning and exploitation with CrackMapExec
+- SSH key enumeration and brute force tools for Linux lateral moves
+- Simulate token stealing or pass-the-hash attacks
+
+Persistence Checker
+- Enumerate startup items in registry and scheduled tasks (Windows)
+- Scan cron jobs, systemd service files for suspicious entries (Linux)
+- Check common persistence scripts and unusual file timestamps
+
+Malware Scanner
+- Build YARA rules or integrate ClamAV for signature detection
+- Scan running processes, services, and autoruns for anomalies
+- Generate detailed summary report with severity levels and recommendations
+
+---------------------------------------------------
+End of To-Do List
+---------------------------------------------------
