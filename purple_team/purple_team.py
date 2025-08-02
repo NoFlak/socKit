@@ -2,34 +2,47 @@ import os
 import pandas as pd
 import matplotlib.pyplot as plt
 import requests
-from logging_utils import write_action
-from config import load_config
+from utils.logging_utils import write_action
+from utils.config import load_config
 
 config = load_config()
-log_folder = config["log_folder"]
+log_folder = config.get("log_folder", "logs")
 
 def dashboard_report():
     """
-    Generate a dashboard report from logs and export to PDF or Excel.
+    Generate a dashboard report from logs and export to PDF and Excel.
     """
     log_file_path = os.path.join(log_folder, "ToolkitLog.csv")
     try:
+        if not os.path.exists(log_file_path):
+            raise FileNotFoundError(f"Log file not found: {log_file_path}")
+        
         logs = pd.read_csv(log_file_path, names=["Timestamp", "Message"])
         print("\n=== Aggregated Toolkit Logs ===")
-        print(logs)
+        print(logs.head(20))  # Print a sample for readability
+        
         log_counts = logs["Message"].value_counts()
-        log_counts.plot(kind="bar", figsize=(10, 6), color="skyblue")
+        plt.figure(figsize=(10, 6))
+        log_counts.plot(kind="bar", color="skyblue")
         plt.title("Log Message Counts")
         plt.xlabel("Message")
         plt.ylabel("Count")
         plt.tight_layout()
-        plt.savefig(os.path.join(log_folder, "DashboardReport.pdf"))
-        print(f"Dashboard report saved as PDF in {log_folder}.")
-        logs.to_excel(os.path.join(log_folder, "ToolkitLog.xlsx"), index=False)
-        print(f"Logs exported to Excel in {log_folder}.")
+        pdf_path = os.path.join(log_folder, "DashboardReport.pdf")
+        plt.savefig(pdf_path)
+        plt.close()
+        print(f"Dashboard report saved as PDF: {pdf_path}")
+
+        excel_path = os.path.join(log_folder, "ToolkitLog.xlsx")
+        logs.to_excel(excel_path, index=False)
+        print(f"Logs exported to Excel: {excel_path}")
+
+        write_action("Dashboard report generated successfully.", log_folder, level="INFO")
+
     except Exception as e:
-        print(f"Error generating dashboard report: {e}")
-        write_action(f"Error generating dashboard report: {e}", log_folder)
+        error_msg = f"Error generating dashboard report: {e}"
+        print(error_msg)
+        write_action(error_msg, log_folder, level="ERROR")
 
 def forward_logs_to_siem():
     """
@@ -38,18 +51,24 @@ def forward_logs_to_siem():
     log_file_path = os.path.join(log_folder, "ToolkitLog.csv")
     siem_url = input("Enter the SIEM API endpoint URL: ").strip()
     try:
+        if not os.path.exists(log_file_path):
+            raise FileNotFoundError(f"Log file not found: {log_file_path}")
+
         with open(log_file_path, "r") as f:
             logs = f.read()
+
         response = requests.post(siem_url, data={"logs": logs})
         if response.status_code == 200:
             print("Logs successfully forwarded to SIEM.")
-            write_action("Logs forwarded to SIEM.", log_folder)
+            write_action("Logs forwarded to SIEM.", log_folder, level="INFO")
         else:
-            print(f"Failed to forward logs. Status code: {response.status_code}")
-            write_action(f"Failed to forward logs. Status code: {response.status_code}", log_folder)
+            msg = f"Failed to forward logs. Status code: {response.status_code}"
+            print(msg)
+            write_action(msg, log_folder, level="ERROR")
     except Exception as e:
-        print(f"Error forwarding logs to SIEM: {e}")
-        write_action(f"Error forwarding logs to SIEM: {e}", log_folder)
+        error_msg = f"Error forwarding logs to SIEM: {e}"
+        print(error_msg)
+        write_action(error_msg, log_folder, level="ERROR")
 
 def log_correlation_engine():
     print("[PLACEHOLDER] Log correlation engine not yet implemented.")
@@ -65,7 +84,6 @@ def automated_report_generator():
 
 def alert_simulation():
     print("[PLACEHOLDER] Alert simulation not yet implemented.")
-
 
 def purple_team_menu():
     while True:

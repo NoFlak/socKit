@@ -1,1 +1,6 @@
 /__pycache__
+blue_team/__pycache__
+red_team/__pycache__
+purple_team/__pycache__
+utils/__pycache__
+Logs/*

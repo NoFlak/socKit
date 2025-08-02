@@ -1,4 +1,9 @@
-pandas
-matplotlib
-requests
-ldap3
+pandas         # Data manipulation and analysis, e.g., generating reports or handling logs (e.g., reporting modules)
+matplotlib     # Data visualization, useful for creating graphs or charts in reporting features
+requests       # HTTP requests for APIs, e.g., threat intelligence feeds, update checks
+ldap3          # LDAP queries for Active Directory audits and user privilege enumeration (Blue Team tools)
+psutil         # System and process monitoring, resource usage tracking (System Tools and Resource Monitor)
+colorama       # Terminal text colorization and styling for UI improvements (CLI menus and outputs)
+paramiko       # SSH connections for remote execution and lateral movement simulations (Red Team tools)
+distro         # Linux distribution detection for running distro-specific commands (System Tools: package repair)
+pyyaml         # Configuration file parsing and loading, e.g., toolkit settings (Config management)

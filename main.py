@@ -1,68 +1,107 @@
-import platform
-from config import load_config
-from logging_utils import write_action
-from system_tools import system_file_checker
-from network_tools import ping_test
-from red_team import red_team_menu
-from blue_team import blue_team_menu
-from purple_team import purple_team_menu
-from utils import (
-    create_directory,
-    list_directory_contents,
-    display_ip_configuration,
-    display_mac_addresses,
-    display_user_information
-)
+import importlib
+import os
+from utils import load_config, write_action
 
-# --- Initialization ---
-config = load_config()
-log_folder = config["log_folder"]
-timeout = config["timeout"]
-os_name = platform.system()
-create_directory(log_folder)
-print(f"Operating System Detected: {os_name}")
-print(f"Log folder: {log_folder}")
+TOOL_CATEGORIES = {
+    "Blue Team": "blue_team",
+    "Red Team": "red_team",
+    "Purple Team": "purple_team",
+    "System Tools": "system_tool",  # Ensure this matches your folder/package names
+    "Diagnostics": "utils.diagnostics"  # Optional separate category
+}
+
+def list_tools(package_name):
+    """List available tool modules in the specified package folder."""
+    try:
+        package_path = os.path.join(os.path.dirname(__file__), *package_name.split('.'))
+        tools = [
+            f[:-3] for f in os.listdir(package_path)
+            if f.endswith(".py") and f != "__init__.py"
+        ]
+        return tools
+    except FileNotFoundError:
+        print(f"Package directory '{package_name}' not found.")
+        return []
+
+def run_tool(package, tool_name, log_folder):
+    """Import the tool module and run its run(log_folder) method if available."""
+    try:
+        module_path = f"{package}.{tool_name}"
+        tool_module = importlib.import_module(module_path)
+        write_action(f"Running {tool_name} from {package}", log_folder)
+        if hasattr(tool_module, "run"):
+            try:
+                tool_module.run(log_folder=log_folder)
+            except TypeError:
+                tool_module.run()
+        else:
+            print(f"{tool_name} does not define a run() method.")
+    except Exception as e:
+        error_msg = f"Error running {tool_name}: {e}"
+        print(error_msg)
+        write_action(error_msg, log_folder)
 
 def show_main_menu():
+    print("\n=== SOC Toolkit Main Menu ===")
+    for idx, category in enumerate(TOOL_CATEGORIES, start=1):
+        print(f"{idx}. {category}")
+    print("Q. Exit")
+
+def show_tools_menu(category):
+    package = TOOL_CATEGORIES[category]
+    tools = list_tools(package)
+    print(f"\n--- {category} ---")
+    for idx, tool in enumerate(tools, start=1):
+        print(f"{idx}. {tool}")
+    print("0. Back")
+    return tools, package
+
+def main():
+    config = load_config()
+    log_folder = config.get("log_folder", "logs")
+    os.makedirs(log_folder, exist_ok=True)
+    print(f"Log folder: {log_folder}")
+    print("Starting SOC Toolkit...")
+
     while True:
-        print("\n==========================================")
-        print("      Cross-Platform SOC Toolkit v2.4     ")
-        print("==========================================")
-        print("1. System Diagnostics")
-        print("2. Network Diagnostics")
-        print("3. Red Team Tools")
-        print("4. Blue Team Tools")
-        print("5. Purple Team Tools")
-        print("6. Directory Information")
-        print("7. IP Configuration")
-        print("8. MAC Address Information")
-        print("9. User Information")
-        print("Q. Quit")
-        print("==========================================")
-        choice = input("Enter your choice: ").strip().upper()
-        if choice == "1":
-            system_file_checker()
-        elif choice == "2":
-            ping_test()
-        elif choice == "3":
-            red_team_menu()
-        elif choice == "4":
-            blue_team_menu()
-        elif choice == "5":
-            purple_team_menu()
-        elif choice == "6":
-            list_directory_contents()
-        elif choice == "7":
-            display_ip_configuration()
-        elif choice == "8":
-            display_mac_addresses()
-        elif choice == "9":
-            display_user_information()
-        elif choice == "Q":
-            print("Exiting the toolkit. Goodbye!")
+        show_main_menu()
+        choice = input("Select a category: ").strip().lower()
+
+        if choice == "q":
+            print("Exiting SOC Toolkit. Goodbye!")
+            write_action("Exited SOC Toolkit.", log_folder)
             break
-        else:
-            print("Invalid selection. Please try again.")
+
+        try:
+            choice_num = int(choice)
+            if 1 <= choice_num <= len(TOOL_CATEGORIES):
+                category = list(TOOL_CATEGORIES.keys())[choice_num - 1]
+            else:
+                raise ValueError
+        except ValueError:
+            print(f"Invalid selection. Enter 1–{len(TOOL_CATEGORIES)} or Q to exit.")
+            continue
+
+        tools, package = show_tools_menu(category)
+        tool_choice = input("Select a tool: ").strip()
+
+        if tool_choice == "0":
+            continue
+
+        try:
+            tool_num = int(tool_choice)
+            if 1 <= tool_num <= len(tools):
+                tool_name = tools[tool_num - 1]
+                run_tool(package, tool_name, log_folder)
+            else:
+                raise ValueError
+        except ValueError:
+            print(f"Invalid tool selection. Enter 1–{len(tools)} or 0 to go back.")
+            continue
 
 if __name__ == "__main__":
-    show_main_menu()
+    try:
+        main()
+    except (KeyboardInterrupt, EOFError):
+        print("\nInterrupted. Exiting SOC Toolkit.")
+        write_action("SOC Toolkit interrupted by user.", "logs")

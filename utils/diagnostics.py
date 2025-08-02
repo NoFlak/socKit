@@ -1,7 +1,22 @@
 import os
 import platform
-from logging_utils import write_action
-from command_utils import execute_command
+from utils.logging_utils import write_action
+from utils.command_utils import execute_command
+
+def run(log_folder):
+    print("=== Running System Diagnostics ===")
+    create_directory("diagnostics_output")
+    list_directory_contents()
+    display_ip_configuration()
+    display_mac_addresses()
+    display_user_information()
+    write_action("System diagnostics completed.", log_folder)
+
+tool_metadata = {
+    "name": "System Diagnostics",
+    "team": "System",
+    "os_support": ["Windows", "Linux", "macOS"]
+}
 
 def create_directory(path):
     try:
@@ -26,18 +41,12 @@ def list_directory_contents():
 
 def display_ip_configuration():
     os_name = platform.system()
-    if os_name == "Windows":
-        command = "ipconfig"
-    else:
-        command = "ifconfig"
+    command = "ipconfig" if os_name == "Windows" else "ifconfig"
     execute_command(command, "IP Configuration")
 
 def display_mac_addresses():
     os_name = platform.system()
-    if os_name == "Windows":
-        command = "getmac"
-    else:
-        command = "ifconfig | grep ether"
+    command = "getmac" if os_name == "Windows" else "ifconfig | grep ether"
     execute_command(command, "MAC Address Information")
 
 def display_user_information():

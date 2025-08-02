@@ -6,10 +6,18 @@ Phase 1: Core Foundation & Critical Blue Team Features (Weeks 1-4)
 ---------------------------------------------------
 
 GENERAL TOOLKIT
-- [ ] Centralized logging & SIEM integration
-    - Define log format & schema
-    - Implement log collection & storage
+- [~] Centralized logging & SIEM integration
+    - Define log format & schema --COMPLETED--
+    - Implement log collection & storage --COMPLETED--
     - Add support for external SIEM (Splunk, ELK)
+    - Add lifecycle logging (log_tool_start, log_tool_end, log_error) --COMPLETED--
+    - Add general-purpose logging (log_event, log_to_file) --COMPLETED--
+    - Add function-level logging decorator (log_execution) --COMPLETED--
+    - Refactor command_utils.py for structured logging and async/safe execution --COMPLETED--
+    - Capture stderr in command output --COMPLETED--
+    - Add optional syslog output for Splunk/ELK integration
+    - Include hostname and event ID metadata for traceability
+
 - [ ] User authentication & RBAC
     - Implement basic login system
     - Define roles & permissions for Red/Blue/Purple teams
