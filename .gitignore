@@ -1,20 +1,9 @@
-<<<<<<< HEAD
 __pycache__/
+
+# User-specific or AI-authored guidance artifacts
+# (ignored to keep repo focused on core platform code)
+docs/applying_changes.md
+docs/direction_questionnaire.md
+docs/testing.md
 venv/
 logs/
-
-# User-specific or AI-authored guidance artifacts
-# (ignored to keep repo focused on core platform code)
-docs/applying_changes.md
-docs/direction_questionnaire.md
-docs/testing.md
-=======
-__pycache__/
-
-# User-specific or AI-authored guidance artifacts
-# (ignored to keep repo focused on core platform code)
-docs/applying_changes.md
-docs/direction_questionnaire.md
-docs/testing.md
-todo.txt
->>>>>>> 3991a3b206712bd5fe95bd6ac326741475623d7c

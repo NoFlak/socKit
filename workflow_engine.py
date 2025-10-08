@@ -10,6 +10,7 @@ from typing import Any, Callable, Dict, Iterable, List, Optional
 import yaml
 
 from logging_utils import write_action
+from config import load_config
 
 
 TaskCallable = Callable[..., Any]
@@ -111,6 +112,25 @@ def bootstrap_builtin_tasks() -> None:
     )
     from red_team import credential_dump_simulation, lateral_movement_simulation, persistence_checker, privilege_escalation_checker
     from purple_team import dashboard_report, log_correlation_engine, mitre_attack_mapping
+    from system_tool.system_tools import (
+        scan_and_repair,
+        package_repair,
+        disk_cleanup,
+        network_reset,
+        resource_monitor,
+        gpu_usage_monitor,
+        thermal_sensor_check,
+        startup_program_auditor,
+        scheduled_task_auditor,
+        power_settings_optimizer,
+    )
+
+    # Wrapper to inject log_folder for system_tool tasks
+    def _with_log_folder(func: Callable[..., Any]) -> TaskCallable:
+        def runner() -> Any:
+            cfg = load_config()
+            return func(cfg.log_folder)
+        return runner
 
     task_map = {
         "system.overview": display_system_overview,
@@ -136,6 +156,17 @@ def bootstrap_builtin_tasks() -> None:
         "purple.dashboard": dashboard_report,
         "purple.correlation": log_correlation_engine,
         "purple.mitre_mapping": mitre_attack_mapping,
+        # Detailed system toolkit tasks
+        "system.repair_all": _with_log_folder(scan_and_repair),
+        "system.package_repair": _with_log_folder(package_repair),
+        "system.disk_cleanup": _with_log_folder(disk_cleanup),
+        "system.network_reset": _with_log_folder(network_reset),
+        "system.resource_monitor": _with_log_folder(resource_monitor),
+        "system.gpu_monitor": _with_log_folder(gpu_usage_monitor),
+        "system.thermal_check": _with_log_folder(thermal_sensor_check),
+        "system.startup_auditor": _with_log_folder(startup_program_auditor),
+        "system.scheduled_tasks": _with_log_folder(scheduled_task_auditor),
+        "system.power_settings": _with_log_folder(power_settings_optimizer),
     }
 
     for name, func in task_map.items():

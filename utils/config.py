@@ -21,6 +21,10 @@ class Config:
     playbooks_folder: str = "playbooks"
     artifacts_folder: str = "artifacts"
     questionnaire_file: str = "docs/direction_questionnaire.md"
+    # Security and hygiene
+    secure_logs: bool = True
+    log_retention_days: int = 30
+    redact_host_identifiers: bool = True
     extra: Dict[str, Any] = field(default_factory=dict)
 
     def as_dict(self) -> Dict[str, Any]:
@@ -31,6 +35,9 @@ class Config:
             "playbooks_folder": self.playbooks_folder,
             "artifacts_folder": self.artifacts_folder,
             "questionnaire_file": self.questionnaire_file,
+            "secure_logs": self.secure_logs,
+            "log_retention_days": self.log_retention_days,
+            "redact_host_identifiers": self.redact_host_identifiers,
         }
         base.update(self.extra)
         return base

@@ -1,4 +1,8 @@
-"""Host diagnostics and automation utilities."""
+"""Host diagnostics and automation utilities.
+
+- Runs noisy diagnostics synchronously to avoid interleaving with menus.
+- Prints concise summaries while persisting full output to logs/HTML.
+"""
 
 from __future__ import annotations
 
@@ -7,9 +11,66 @@ import platform
 import shutil
 from datetime import datetime
 from typing import Dict, Iterable, List
+from pathlib import Path
+import subprocess
 
 from command_utils import execute_command, execute_command_async
+from config import load_config
 from logging_utils import log_table, write_action
+
+
+def _log_dir() -> Path:
+    cfg = load_config()
+    Path(cfg.log_folder).mkdir(parents=True, exist_ok=True)
+    return Path(cfg.log_folder)
+
+
+def _run_and_capture(command: str, description: str, *, head: int = 40, html_name: str | None = None) -> None:
+    """Run a command synchronously, print limited output, and persist full results.
+
+    - Prints only the first `head` lines to keep console readable.
+    - Writes full text to DetailedResults via `write_action`.
+    - Optionally writes an HTML snapshot to the log folder.
+    """
+    try:
+        completed = subprocess.run(command, shell=True, capture_output=True, text=True, check=False)
+        output = completed.stdout or completed.stderr or ""
+    except OSError as exc:
+        print(f"[ERROR] Unable to start '{description}': {exc}")
+        write_action(f"{description} failed to start.", level="ERROR", context={"command": command, "error": str(exc)})
+        return
+
+    lines = (output or "").splitlines()
+    shown = lines[:head]
+    for line in shown:
+        print(line)
+    if len(lines) > len(shown):
+        print(f"[... {len(lines) - len(shown)} more lines suppressed. See logs for full output ...]")
+
+    # Persist full text to detailed log
+    write_action(f"{description} completed.", detailed_results=output, context={"command": command, "lines": len(lines)})
+
+    # Optional HTML snapshot
+    if html_name:
+        log_dir = _log_dir()
+        html_path = log_dir / html_name
+        try:
+            html = [
+                "<html><head><meta charset=\"utf-8\"><title>",
+                description,
+                "</title><style>body{font-family:Segoe UI, Arial, sans-serif} pre{white-space:pre-wrap}</style></head><body>",
+                f"<h2>{description}</h2>",
+                "<pre>",
+                output,
+                "</pre>",
+                "</body></html>",
+            ]
+            html_path.write_text("".join(html), encoding="utf-8")
+            print(f"[INFO] Full output saved to {html_path}")
+            write_action("HTML snapshot written.", context={"path": str(html_path)})
+        except OSError as exc:
+            print(f"[WARN] Failed to write HTML snapshot: {exc}")
+            write_action("HTML snapshot failed.", level="WARNING", context={"error": str(exc)})
 
 
 def system_file_checker() -> None:
@@ -26,8 +87,7 @@ def system_file_checker() -> None:
         return
 
     print("System File Checker may take several minutes to complete. Please wait...")
-    execute_command_async(command, "System File Checker")
-    write_action("System file checker initiated.", context={"command": command})
+    _run_and_capture(command, "System File Checker", head=60)
 
 
 def collect_system_overview() -> Dict[str, str]:
@@ -87,7 +147,9 @@ def enumerate_services() -> None:
         write_action("Service enumeration unsupported.", level="WARNING", context={"os": os_name})
         return
 
-    execute_command(command, description, timeout=180)
+    # Capture output without streaming the entire list to the console.
+    # Save a full HTML snapshot for easy viewing.
+    _run_and_capture(command, description, head=60, html_name="service_inventory.html")
 
 
 def list_critical_paths(paths: Iterable[str] | None = None) -> None:

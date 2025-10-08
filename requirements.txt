@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 pandas
 matplotlib
 requests
@@ -8,10 +7,3 @@ psutil
 colorama
 paramiko
 distro
-=======
-pandas
-matplotlib
-requests
-ldap3
-pyyaml
->>>>>>> 3991a3b206712bd5fe95bd6ac326741475623d7c

@@ -1,4 +1,10 @@
-"""Logging utilities for the socKit platform."""
+"""Logging utilities for the socKit platform.
+
+Enhancements:
+- Secure permissions (best-effort) on log files/dirs when configured.
+- Redaction of host/user identifiers when configured.
+- Simple retention cleanup for aging log files.
+"""
 
 from __future__ import annotations
 
@@ -8,15 +14,77 @@ import os
 from datetime import datetime
 from typing import Any, Dict, Iterable, Optional
 
+import platform
+import re
+from datetime import datetime, timedelta
+
 from config import load_config
 
 
-def _ensure_log_paths(log_folder: str, log_file: str, detailed_file: str) -> None:
+def _secure_path(path: str, is_dir: bool) -> None:
+    try:
+        if os.name != "nt":
+            os.chmod(path, 0o700 if is_dir else 0o600)
+    except OSError:
+        pass
+
+
+def _ensure_log_paths(log_folder: str, log_file: str, detailed_file: str, *, secure: bool) -> None:
     os.makedirs(log_folder, exist_ok=True)
+    if secure:
+        _secure_path(log_folder, True)
     for filename in (log_file, detailed_file):
         full_path = os.path.join(log_folder, filename)
         if not os.path.exists(full_path):
             open(full_path, "a", encoding="utf-8").close()
+        if secure:
+            _secure_path(full_path, False)
+
+
+def _enforce_retention(log_folder: str, days: int) -> None:
+    if days <= 0:
+        return
+    cutoff = datetime.now() - timedelta(days=days)
+    try:
+        for name in os.listdir(log_folder):
+            if not any(name.endswith(ext) for ext in (".csv", ".jsonl", ".txt", ".html")):
+                continue
+            full = os.path.join(log_folder, name)
+            try:
+                mtime = datetime.fromtimestamp(os.path.getmtime(full))
+                if mtime < cutoff:
+                    os.remove(full)
+            except OSError:
+                continue
+    except OSError:
+        pass
+
+
+def _sanitize(message: str, context: Optional[Dict[str, Any]], detailed: Optional[str], *, enabled: bool) -> tuple[str, Dict[str, Any], Optional[str]]:
+    ctx = dict(context or {})
+    if not enabled:
+        return message, ctx, detailed
+
+    # Redact common identifiers in context
+    for key in ("user", "username", "domain", "computer", "hostname", "ip", "mac"):
+        if key in ctx and isinstance(ctx[key], str) and ctx[key]:
+            ctx[key] = "<redacted>"
+
+    # Patterns: IPv4, MAC, hostnames (simple)
+    ipv4 = re.compile(r"\b(?:\d{1,3}\.){3}\d{1,3}\b")
+    mac = re.compile(r"\b([0-9A-Fa-f]{2}[:-]){5}[0-9A-Fa-f]{2}\b")
+    host = platform.node()
+
+    def scrub(text: str) -> str:
+        text = ipv4.sub("<ip>", text)
+        text = mac.sub("<mac>", text)
+        if host:
+            text = text.replace(host, "<hostname>")
+        return text
+
+    msg = scrub(message or "")
+    det = scrub(detailed) if isinstance(detailed, str) else detailed
+    return msg, ctx, det
 
 
 def write_action(
@@ -31,10 +99,11 @@ def write_action(
 ) -> None:
     """Persist an action entry to both CSV and human-readable logs."""
 
-    config = load_config() if log_folder is None else None
-    log_dir = log_folder or config.log_folder  # type: ignore[union-attr]
+    cfg = load_config() if log_folder is None else load_config()
+    log_dir = log_folder or cfg.log_folder
 
-    _ensure_log_paths(log_dir, log_file, detailed_file)
+    _ensure_log_paths(log_dir, log_file, detailed_file, secure=bool(getattr(cfg, "secure_logs", True)))
+    _enforce_retention(log_dir, int(getattr(cfg, "log_retention_days", 30)))
 
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     context = context or {}
@@ -42,6 +111,11 @@ def write_action(
     csv_path = os.path.join(log_dir, log_file)
     json_path = os.path.join(log_dir, "ToolkitLog.jsonl")
     detailed_path = os.path.join(log_dir, detailed_file)
+
+    # Sanitize sensitive fields if enabled
+    message, context, detailed_results = _sanitize(
+        message, context, detailed_results, enabled=bool(getattr(cfg, "redact_host_identifiers", True))
+    )
 
     csv_row = {
         "timestamp": timestamp,

@@ -9,7 +9,7 @@ from utils.config import load_config
 from utils.command_utils import execute_command
 
 config = load_config()
-log_folder = config.get("log_folder", "logs")
+log_folder = getattr(config, "log_folder", getattr(config, "get", lambda *_: "logs")("log_folder", "logs"))
 tested_devices = set()
 
 
@@ -61,7 +61,7 @@ def ping_test(target=None):
         cmd = ["ping", "-c", "4", target]
 
     # Use execute_command helper, or fallback to subprocess if not available
-    result = execute_command(" ".join(cmd), f"Ping Test to {target}")
+    result = execute_command(" ".join(cmd), f"Ping Test to {target}", log_folder)
     if not result:
         # If execute_command returns False, fallback to subprocess to get output
         try:

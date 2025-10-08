@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Optional
 
 from blue_team import blue_team_menu
-from config import load_config
+from config import load_config, save_config
 from network_tools import ping_test
 from purple_team import purple_team_menu
 from red_team import red_team_menu
@@ -19,6 +19,7 @@ from system_tools import (
     list_critical_paths,
     system_file_checker,
 )
+from system_tool.system_tools import system_tools_menu
 from utils import (
     create_directory,
     display_ip_configuration,
@@ -27,6 +28,78 @@ from utils import (
     list_directory_contents,
 )
 from workflow_engine import bootstrap_builtin_tasks, ensure_playbook, list_tasks, run_playbook
+
+
+def _first_run_setup(config) -> None:
+    """Prompt for a log folder on first run if no config exists.
+
+    If `config.json` is missing or `log_folder` is empty, ask the user whether
+    to use the default path or provide a custom one, then persist via save_config.
+    """
+    cfg_path = Path("config.json")
+    needs_prompt = (not cfg_path.exists()) or (not getattr(config, "log_folder", None))
+    if not needs_prompt:
+        return
+
+    default_path = str((Path.cwd() / "logs").resolve())
+    print("\n=== First‑Time Setup ===")
+    print("Choose where to store logs.")
+    user_input = input(f"Log folder [{default_path}]: ").strip()
+    chosen = user_input or default_path
+    # Ensure folder exists before saving
+    try:
+        Path(chosen).mkdir(parents=True, exist_ok=True)
+    except OSError as exc:
+        print(f"[ERROR] Unable to create log folder at {chosen}: {exc}")
+        print("Falling back to default.")
+        chosen = default_path
+        Path(chosen).mkdir(parents=True, exist_ok=True)
+
+    # Persist selection
+    config.log_folder = chosen
+    try:
+        save_config(config)
+        print(f"Saved configuration to {cfg_path} (log_folder={chosen}).")
+    except Exception:
+        # Non-fatal; continue with in-memory config
+        print("[WARN] Could not save configuration file. Using in-memory settings.")
+
+
+def _ensure_writable_log_folder(config) -> None:
+    """Verify the log folder is writable; if not, guide user to fix it.
+
+    Attempts to create the folder and write a small test file. If it fails,
+    prompts (when interactive) for an alternate path. Falls back to a default
+    path under the current working directory without crashing.
+    """
+    target = Path(getattr(config, "log_folder", "logs"))
+    default_path = (Path.cwd() / "logs").resolve()
+    is_interactive = sys.stdin.isatty()
+
+    while True:
+        try:
+            target.mkdir(parents=True, exist_ok=True)
+            probe = target / ".write_test.tmp"
+            probe.write_text("ok", encoding="utf-8")
+            probe.unlink(missing_ok=True)
+            # Writable, persist if different from config
+            config.log_folder = str(target)
+            try:
+                save_config(config)
+            except Exception:
+                pass  # non-fatal
+            print(f"Log folder confirmed: {target}")
+            return
+        except OSError as exc:
+            print(f"[WARN] Log folder is not writable: {target} ({exc})")
+            if is_interactive:
+                new_path = input(f"Enter an alternate log path [{default_path}]: ").strip() or str(default_path)
+                target = Path(new_path)
+                continue
+            else:
+                # Non-interactive: silently fall back to default
+                target = default_path
+                continue
 
 
 def parse_args() -> argparse.Namespace:
@@ -46,7 +119,7 @@ def display_questionnaire(path: Path) -> None:
     print(path.read_text(encoding="utf-8"))
 
 
-def interactive_menu(questionnaire_path: Path) -> None:
+def interactive_menu(questionnaire_path: Path, *, log_folder: str) -> None:
     while True:
         print("\n==========================================")
         print("      Cross-Platform SOC Toolkit v3.0     ")
@@ -62,6 +135,7 @@ def interactive_menu(questionnaire_path: Path) -> None:
         print("9. MAC Address Information")
         print("10. User Information")
         print("11. Show Strategy Questionnaire")
+        print("12. System Toolkit (Detailed)")
         print("Q. Quit")
         print("==========================================")
         choice = input("Enter your choice: ").strip().upper()
@@ -94,6 +168,8 @@ def interactive_menu(questionnaire_path: Path) -> None:
             display_user_information()
         elif choice == "11":
             display_questionnaire(questionnaire_path)
+        elif choice == "12":
+            system_tools_menu(log_folder)
         elif choice == "Q":
             print("Exiting the toolkit. Goodbye!")
             break
@@ -104,6 +180,10 @@ def interactive_menu(questionnaire_path: Path) -> None:
 def main() -> None:
     args = parse_args()
     config = load_config()
+    # First-time setup: prompt for log folder if config.json is missing
+    _first_run_setup(config)
+    # Ensure log folder is writable; prompt/fallback if not
+    _ensure_writable_log_folder(config)
     create_directory(config.log_folder)
     create_directory(config.artifacts_folder)
 
@@ -128,7 +208,7 @@ def main() -> None:
 
     print(f"Operating System Detected: {platform.system()}")
     print(f"Log folder: {config.log_folder}")
-    interactive_menu(questionnaire_path)
+    interactive_menu(questionnaire_path, log_folder=config.log_folder)
 
 
 if __name__ == "__main__":
