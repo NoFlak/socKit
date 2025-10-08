@@ -1,1 +1,8 @@
-/__pycache__
+__pycache__/
+
+# User-specific or AI-authored guidance artifacts
+# (ignored to keep repo focused on core platform code)
+docs/applying_changes.md
+docs/direction_questionnaire.md
+docs/testing.md
+todo.txt

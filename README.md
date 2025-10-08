@@ -34,14 +34,13 @@ I had an older version with some tools built out already but lost some of it aft
 
 ## Features
 
-- Interactive CLI menus for easy tool selection  
-- Active Directory auditing and user privilege enumeration  
-- File integrity monitoring and spoofed file detection  
-- Malware persistence scanning across multiple vectors  
-- Event log analysis and network share auditing  
-- Patch compliance and firewall/AV status checking  
-- Modular design for adding new capabilities rapidly  
-- Logging and SIEM-ready output formatting  
+- Unified CLI with interactive menu and scriptable workflows (playbooks)
+- Structured logging pipeline (CSV + JSONL) with SIEM forwarding support
+- Automated red/blue/purple task library providing actionable baselines
+- Pluggable workflow engine for orchestrating multi-step incident workflows
+- Strategy questionnaire to guide future enhancements and alignment
+- Enhanced telemetry exports (Excel, Markdown reports, dashboards)
+- Improved error handling, contextual logging, and configurable timeouts
 
 ---
 
@@ -55,31 +54,27 @@ I had an older version with some tools built out already but lost some of it aft
 
 ### Blue Team
 
-- Shadow Copy & Alternate Data Auditor  
-- AD Password Policy Audit  
-- AD User Privilege Audit  
-- Local Password Policy Audit  
-- Windows Event Log Analyzer  
-- Network Share Access Auditor  
-- Patch Compliance Checker  
-- File Integrity Monitor  
-- Service & Process Monitor  
-- Backup Integrity Verifier  
-- User Session Auditor  
-- Firewall & Antivirus Status Checker  
-- Malware Persistence Scanner  
-- File Type Spoofing Detector  
+- Shadow file hygiene baseline
+- Active Directory export review and privilege auditing
+- Local password risk detection
+- Event log triage and network share auditing
+- Patch posture, file integrity, backup verification, firewall status
+- Malware persistence scanning, service/process inventory
 
-### Red Team (in development)
+### Red Team
 
-- Network reconnaissance  
-- Privilege escalation helpers  
-- Payload generation  
+- Guided Nmap scanning profiles
+- Credential exposure simulation (registry/files)
+- Lateral movement surface review
+- Persistence and privilege escalation checks
+- Phishing simulation template generator
 
-### Purple Team (planned)
+### Purple Team
 
-- Incident simulation and detection tuning  
-- Alert correlation and reporting  
+- Dashboard reporting from structured logs
+- SIEM forwarding and correlation
+- MITRE ATT&CK mapping via YAML definitions
+- Threat intel lookups, automated reporting, alert simulation
 
 ---
 
@@ -87,41 +82,36 @@ I had an older version with some tools built out already but lost some of it aft
 
 1. Clone the repository:
 
-git clone https://github.com/NoFlak/socKit.git
-cd socKit
+   ```bash
+   git clone https://github.com/NoFlak/socKit.git
+   cd socKit
+   ```
 
 2. Install dependencies:
-   pip install -r requirements.txt
 
-3.Run the main interface or call specific modules:
-
-python main_menu.py,
-or for example, 
-call python malware_scanner.py from terminal directly it might not get logging you want from direct call of specific tools until I add the enhanced logging in better.
-__________________________________________________
-# Malware Persistence & Execution Tracker (MPET) #
--------------------------------------------------
-
-A Python tool to assist Blue Teams during Windows endpoint audits by detecting
-persistence mechanisms used by malware or attackers.
-
-## Features
-- Scans common registry autostart locations (`Run`, `RunOnce`, services)
-- Inspects startup folder executables (user and all users)
-- Enumerates suspicious scheduled tasks
-- Analyzes Windows Prefetch files for suspicious executions
-- Parses PowerShell Operational Event Log for suspicious script executions
-- Outputs detailed logs to console and log file (timestamped or custom path)
-- Requires Administrator privileges to run
-
-## Requirements
-- Python 3.x (tested with 3.11)
-- Windows OS (requires Windows APIs for admin check and system paths)
-- No external dependencies
+   ```bash
+   python -m pip install -r requirements.txt
+   ```
 
 ## Usage
 
-Run interactively from command line:
+### Interactive mode
 
 ```bash
-python mpet_scan.py [--log path_to_logfile.txt]
+python main.py
+```
+
+Use the menu to run diagnostics, open red/blue/purple modules, launch playbooks,
+or view the SOC strategy questionnaire.
+
+### Workflow automation
+
+```bash
+python main.py --list-tasks
+python main.py --playbook playbooks/quick_health.yaml
+python main.py --playbook playbooks/quick_health.yaml --dry-run
+```
+
+Add new playbooks under `playbooks/` to orchestrate bespoke incident response or
+readiness checks. Registered task names are documented via `--list-tasks`.
+
