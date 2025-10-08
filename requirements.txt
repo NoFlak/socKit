@@ -2,3 +2,4 @@ pandas
 matplotlib
 requests
 ldap3
+pyyaml

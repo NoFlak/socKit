@@ -1,0 +1,19 @@
+name: Quick Health Check
+description: Baseline system, network, and blue team posture verification.
+steps:
+  - task: system.overview
+  - task: system.services
+  - task: network.ping
+    args:
+      target: 8.8.8.8
+      count: 2
+  - task: network.dns_health
+    args:
+      domains:
+        - example.com
+        - internal.local
+  - task: blue.shadow
+  - task: blue.event_logs
+    args:
+      # Override during execution or edit for default log paths.
+      log_path: ./logs/ToolkitLog.csv
