@@ -116,6 +116,13 @@ def parse_args() -> argparse.Namespace:
 
 def display_questionnaire(path: Path) -> None:
     if not path.exists():
+        # Fallback to docs/overview.md if configured path missing
+        fallback = Path("docs/overview.md")
+        if fallback.exists():
+            print(f"\n[Info] Using fallback questionnaire: {fallback}")
+            print("\n=== Strategy Questionnaire (Overview) ===\n")
+            print(fallback.read_text(encoding="utf-8"))
+            return
         print(f"Questionnaire file {path} not found. Consider reviewing docs for alignment.")
         return
     print("\n=== Strategy Questionnaire ===\n")
