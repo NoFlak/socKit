@@ -6,7 +6,10 @@ import argparse
 import platform
 import sys
 from pathlib import Path
+import subprocess
 from typing import Optional
+import time
+import yaml
 
 from blue_team import blue_team_menu
 from config import load_config, save_config
@@ -119,57 +122,202 @@ def display_questionnaire(path: Path) -> None:
     print(path.read_text(encoding="utf-8"))
 
 
+def _run_quick_health() -> None:
+    print("\n[Quick Health] System overview...")
+    display_system_overview()
+    print("\n[Quick Health] Enumerating services (preview)...")
+    enumerate_services()
+    print("\n[Quick Health] Critical paths...")
+    list_critical_paths([])
+
+
+def _launch_admin_tools_ps() -> None:
+    if platform.system() != "Windows":
+        print("Admin Tools (PowerShell) is available on Windows only.")
+        return
+    try:
+        script_path = Path(__file__).parent / "SystemToolkit" / "AdminTools" / "AdminTools.ps1"
+        if not script_path.exists():
+            print(f"Admin Tools script not found at {script_path}")
+            return
+        subprocess.run([
+            "powershell",
+            "-NoProfile",
+            "-ExecutionPolicy", "Bypass",
+            "-File", str(script_path)
+        ])
+    except Exception as exc:
+        print(f"Failed to launch Admin Tools: {exc}")
+
+
+def _tools_hub_menu(log_folder: str) -> None:
+    from network_tools import dns_health_check, tcp_port_scan
+    while True:
+        print("\n==== Tools Hub ====")
+        print("1) System Tools")
+        print("2) Network Tools")
+        print("3) Admin Tools")
+        print("4) Detailed System Toolkit")
+        print("0) Back")
+        choice = input("Select: ").strip()
+        if choice == "1":
+            while True:
+                print("\n-- System Tools --")
+                print("1) System Overview")
+                print("2) Enumerate Services (preview)")
+                print("3) Critical Path Inventory")
+                print("4) System File Checker")
+                print("0) Back")
+                sc = input("Select: ").strip()
+                if sc == "1":
+                    display_system_overview()
+                elif sc == "2":
+                    enumerate_services()
+                elif sc == "3":
+                    list_critical_paths([])
+                elif sc == "4":
+                    system_file_checker()
+                elif sc == "0":
+                    break
+                else:
+                    print("Invalid selection.")
+        elif choice == "2":
+            while True:
+                print("\n-- Network Tools --")
+                print("1) Ping Test")
+                print("2) DNS Health Check")
+                print("3) TCP Port Scan")
+                print("0) Back")
+                nc = input("Select: ").strip()
+                if nc == "1":
+                    ping_test()
+                elif nc == "2":
+                    domains = input("Comma-separated domains (e.g., example.com,google.com): ").strip()
+                    dom_list = [d.strip() for d in domains.split(',') if d.strip()]
+                    if dom_list:
+                        dns_health_check(dom_list)
+                    else:
+                        print("No domains provided.")
+                elif nc == "3":
+                    host = input("Host/IP: ").strip()
+                    ports_raw = input("Ports (comma-separated, e.g., 22,80,443): ").strip()
+                    try:
+                        ports = [int(p.strip()) for p in ports_raw.split(',') if p.strip()]
+                    except ValueError:
+                        print("Invalid ports input.")
+                        continue
+                    tcp_port_scan(host, ports)
+                elif nc == "0":
+                    break
+                else:
+                    print("Invalid selection.")
+        elif choice == "3":
+            _launch_admin_tools_ps()
+        elif choice == "4":
+            system_tools_menu(log_folder)
+        elif choice == "0":
+            return
+        else:
+            print("Invalid selection.")
+
+
+def _write_temp_playbook(steps: list[dict], name: str) -> Path:
+    folder = Path("playbooks")
+    folder.mkdir(parents=True, exist_ok=True)
+    ts = time.strftime("%Y%m%d-%H%M%S")
+    path = folder / f"{name}-{ts}.yaml"
+    with path.open("w", encoding="utf-8") as f:
+        yaml.safe_dump({"name": name, "steps": steps}, f, sort_keys=False)
+    return path
+
+
+def _workflows_menu() -> None:
+    while True:
+        print("\n==== Workflows ====")
+        print("1) System Quick Health")
+        print("2) Blue Team Baseline")
+        print("3) Red Team Recon")
+        print("4) Purple Analytics")
+        print("5) Admin Winget Upgrades (preview)")
+        print("L) List all tasks")
+        print("0) Back")
+        choice = input("Select: ").strip().upper()
+        if choice == "1":
+            steps = [
+                {"task": "system.overview"},
+                {"task": "system.services"},
+                {"task": "network.ping", "args": {"target": "8.8.8.8", "count": 2}},
+            ]
+            path = _write_temp_playbook(steps, "quick_health")
+            run_playbook(path)
+        elif choice == "2":
+            steps = [
+                {"task": "blue.shadow"},
+                {"task": "blue.patch_status"},
+                {"task": "blue.file_integrity"},
+            ]
+            path = _write_temp_playbook(steps, "blue_baseline")
+            run_playbook(path)
+        elif choice == "3":
+            steps = [
+                {"task": "red.credential_exposure"},
+                {"task": "red.lateral_movement"},
+            ]
+            path = _write_temp_playbook(steps, "red_recon")
+            run_playbook(path)
+        elif choice == "4":
+            steps = [
+                {"task": "purple.dashboard"},
+                {"task": "purple.correlation"},
+            ]
+            path = _write_temp_playbook(steps, "purple_analytics")
+            run_playbook(path)
+        elif choice == "5":
+            steps = [
+                {"task": "admin.winget_upgrade", "args": {"include_unknown": True, "dry_run": True}},
+            ]
+            path = _write_temp_playbook(steps, "winget_preview")
+            run_playbook(path)
+        elif choice == "L":
+            print("\nAvailable Tasks:")
+            for task in list_tasks():
+                print(f" - {task}")
+        elif choice == "0":
+            return
+        else:
+            print("Invalid selection.")
+
+
 def interactive_menu(questionnaire_path: Path, *, log_folder: str) -> None:
     while True:
         print("\n==========================================")
-        print("      Cross-Platform SOC Toolkit v3.0     ")
+        print("      Cross-Platform SOC Toolkit v3.1     ")
         print("==========================================")
-        print("1. System Diagnostics")
-        print("2. Network Diagnostics")
-        print("3. Red Team Automation")
-        print("4. Blue Team Automation")
-        print("5. Purple Team Analytics")
-        print("6. Run Workflow Playbook")
-        print("7. Directory Insights")
-        print("8. IP Configuration")
-        print("9. MAC Address Information")
-        print("10. User Information")
-        print("11. Show Strategy Questionnaire")
-        print("12. System Toolkit (Detailed)")
-        print("Q. Quit")
+        print("1) Quick Health")
+        print("2) Tools")
+        print("3) Workflows")
+        print("4) Blue Team")
+        print("5) Red Team")
+        print("6) Purple Team")
+        print("7) Help / Questionnaire")
+        print("Q) Quit")
         print("==========================================")
-        choice = input("Enter your choice: ").strip().upper()
+        choice = input("Select: ").strip().upper()
 
         if choice == "1":
-            display_system_overview()
-            enumerate_services()
-            list_critical_paths([])
-            system_file_checker()
+            _run_quick_health()
         elif choice == "2":
-            ping_test()
+            _tools_hub_menu(log_folder)
         elif choice == "3":
-            red_team_menu()
+            _workflows_menu()
         elif choice == "4":
             blue_team_menu()
         elif choice == "5":
-            purple_team_menu()
+            red_team_menu()
         elif choice == "6":
-            playbook_name = input("Enter playbook filename (leave blank for default): ").strip() or "playbooks/quick_health.yaml"
-            path = ensure_playbook(playbook_name)
-            run_playbook(path)
+            purple_team_menu()
         elif choice == "7":
-            directory = input("Enter directory to inspect (blank for current): ").strip() or "."
-            list_directory_contents(directory)
-        elif choice == "8":
-            display_ip_configuration()
-        elif choice == "9":
-            display_mac_addresses()
-        elif choice == "10":
-            display_user_information()
-        elif choice == "11":
             display_questionnaire(questionnaire_path)
-        elif choice == "12":
-            system_tools_menu(log_folder)
         elif choice == "Q":
             print("Exiting the toolkit. Goodbye!")
             break
