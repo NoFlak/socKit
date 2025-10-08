@@ -1,6 +1,20 @@
-/__pycache__
-blue_team/__pycache__
-red_team/__pycache__
-purple_team/__pycache__
-utils/__pycache__
-Logs/*
+<<<<<<< HEAD
+__pycache__/
+venv/
+logs/
+
+# User-specific or AI-authored guidance artifacts
+# (ignored to keep repo focused on core platform code)
+docs/applying_changes.md
+docs/direction_questionnaire.md
+docs/testing.md
+=======
+__pycache__/
+
+# User-specific or AI-authored guidance artifacts
+# (ignored to keep repo focused on core platform code)
+docs/applying_changes.md
+docs/direction_questionnaire.md
+docs/testing.md
+todo.txt
+>>>>>>> 3991a3b206712bd5fe95bd6ac326741475623d7c

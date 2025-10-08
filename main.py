@@ -1,107 +1,138 @@
-import importlib
-import os
-from utils import load_config, write_action
+"""Entry point for the socKit automation platform."""
 
-TOOL_CATEGORIES = {
-    "Blue Team": "blue_team",
-    "Red Team": "red_team",
-    "Purple Team": "purple_team",
-    "System Tools": "system_tool",  # Ensure this matches your folder/package names
-    "Diagnostics": "utils.diagnostics"  # Optional separate category
-}
+from __future__ import annotations
 
-def list_tools(package_name):
-    """List available tool modules in the specified package folder."""
-    try:
-        package_path = os.path.join(os.path.dirname(__file__), *package_name.split('.'))
-        tools = [
-            f[:-3] for f in os.listdir(package_path)
-            if f.endswith(".py") and f != "__init__.py"
-        ]
-        return tools
-    except FileNotFoundError:
-        print(f"Package directory '{package_name}' not found.")
-        return []
+import argparse
+import platform
+import sys
+from pathlib import Path
+from typing import Optional
 
-def run_tool(package, tool_name, log_folder):
-    """Import the tool module and run its run(log_folder) method if available."""
-    try:
-        module_path = f"{package}.{tool_name}"
-        tool_module = importlib.import_module(module_path)
-        write_action(f"Running {tool_name} from {package}", log_folder)
-        if hasattr(tool_module, "run"):
-            try:
-                tool_module.run(log_folder=log_folder)
-            except TypeError:
-                tool_module.run()
-        else:
-            print(f"{tool_name} does not define a run() method.")
-    except Exception as e:
-        error_msg = f"Error running {tool_name}: {e}"
-        print(error_msg)
-        write_action(error_msg, log_folder)
+from blue_team import blue_team_menu
+from config import load_config
+from network_tools import ping_test
+from purple_team import purple_team_menu
+from red_team import red_team_menu
+from system_tools import (
+    display_system_overview,
+    enumerate_services,
+    list_critical_paths,
+    system_file_checker,
+)
+from utils import (
+    create_directory,
+    display_ip_configuration,
+    display_mac_addresses,
+    display_user_information,
+    list_directory_contents,
+)
+from workflow_engine import bootstrap_builtin_tasks, ensure_playbook, list_tasks, run_playbook
 
-def show_main_menu():
-    print("\n=== SOC Toolkit Main Menu ===")
-    for idx, category in enumerate(TOOL_CATEGORIES, start=1):
-        print(f"{idx}. {category}")
-    print("Q. Exit")
 
-def show_tools_menu(category):
-    package = TOOL_CATEGORIES[category]
-    tools = list_tools(package)
-    print(f"\n--- {category} ---")
-    for idx, tool in enumerate(tools, start=1):
-        print(f"{idx}. {tool}")
-    print("0. Back")
-    return tools, package
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Cross-platform SOC automation toolkit")
+    parser.add_argument("--playbook", help="Run the specified workflow playbook")
+    parser.add_argument("--dry-run", action="store_true", help="Preview a playbook without executing tasks")
+    parser.add_argument("--list-tasks", action="store_true", help="List all available workflow tasks")
+    parser.add_argument("--questionnaire", action="store_true", help="Display the direction questionnaire")
+    return parser.parse_args()
 
-def main():
-    config = load_config()
-    log_folder = config.get("log_folder", "logs")
-    os.makedirs(log_folder, exist_ok=True)
-    print(f"Log folder: {log_folder}")
-    print("Starting SOC Toolkit...")
 
+def display_questionnaire(path: Path) -> None:
+    if not path.exists():
+        print(f"Questionnaire file {path} not found. Consider reviewing docs for alignment.")
+        return
+    print("\n=== Strategy Questionnaire ===\n")
+    print(path.read_text(encoding="utf-8"))
+
+
+def interactive_menu(questionnaire_path: Path) -> None:
     while True:
-        show_main_menu()
-        choice = input("Select a category: ").strip().lower()
+        print("\n==========================================")
+        print("      Cross-Platform SOC Toolkit v3.0     ")
+        print("==========================================")
+        print("1. System Diagnostics")
+        print("2. Network Diagnostics")
+        print("3. Red Team Automation")
+        print("4. Blue Team Automation")
+        print("5. Purple Team Analytics")
+        print("6. Run Workflow Playbook")
+        print("7. Directory Insights")
+        print("8. IP Configuration")
+        print("9. MAC Address Information")
+        print("10. User Information")
+        print("11. Show Strategy Questionnaire")
+        print("Q. Quit")
+        print("==========================================")
+        choice = input("Enter your choice: ").strip().upper()
 
-        if choice == "q":
-            print("Exiting SOC Toolkit. Goodbye!")
-            write_action("Exited SOC Toolkit.", log_folder)
+        if choice == "1":
+            display_system_overview()
+            enumerate_services()
+            list_critical_paths([])
+            system_file_checker()
+        elif choice == "2":
+            ping_test()
+        elif choice == "3":
+            red_team_menu()
+        elif choice == "4":
+            blue_team_menu()
+        elif choice == "5":
+            purple_team_menu()
+        elif choice == "6":
+            playbook_name = input("Enter playbook filename (leave blank for default): ").strip() or "playbooks/quick_health.yaml"
+            path = ensure_playbook(playbook_name)
+            run_playbook(path)
+        elif choice == "7":
+            directory = input("Enter directory to inspect (blank for current): ").strip() or "."
+            list_directory_contents(directory)
+        elif choice == "8":
+            display_ip_configuration()
+        elif choice == "9":
+            display_mac_addresses()
+        elif choice == "10":
+            display_user_information()
+        elif choice == "11":
+            display_questionnaire(questionnaire_path)
+        elif choice == "Q":
+            print("Exiting the toolkit. Goodbye!")
             break
+        else:
+            print("Invalid selection. Please try again.")
 
-        try:
-            choice_num = int(choice)
-            if 1 <= choice_num <= len(TOOL_CATEGORIES):
-                category = list(TOOL_CATEGORIES.keys())[choice_num - 1]
-            else:
-                raise ValueError
-        except ValueError:
-            print(f"Invalid selection. Enter 1–{len(TOOL_CATEGORIES)} or Q to exit.")
-            continue
 
-        tools, package = show_tools_menu(category)
-        tool_choice = input("Select a tool: ").strip()
+def main() -> None:
+    args = parse_args()
+    config = load_config()
+    create_directory(config.log_folder)
+    create_directory(config.artifacts_folder)
 
-        if tool_choice == "0":
-            continue
+    bootstrap_builtin_tasks()
 
-        try:
-            tool_num = int(tool_choice)
-            if 1 <= tool_num <= len(tools):
-                tool_name = tools[tool_num - 1]
-                run_tool(package, tool_name, log_folder)
-            else:
-                raise ValueError
-        except ValueError:
-            print(f"Invalid tool selection. Enter 1–{len(tools)} or 0 to go back.")
-            continue
+    if args.list_tasks:
+        print("\nAvailable Tasks:")
+        for task in list_tasks():
+            print(f" - {task}")
+        return
+
+    questionnaire_path = Path(config.questionnaire_file)
+    if args.questionnaire:
+        display_questionnaire(questionnaire_path)
+        if not args.playbook:
+            return
+
+    if args.playbook:
+        playbook_path = ensure_playbook(args.playbook)
+        run_playbook(playbook_path, dry_run=args.dry_run)
+        return
+
+    print(f"Operating System Detected: {platform.system()}")
+    print(f"Log folder: {config.log_folder}")
+    interactive_menu(questionnaire_path)
+
 
 if __name__ == "__main__":
     try:
         main()
-    except (KeyboardInterrupt, EOFError):
-        print("\nInterrupted. Exiting SOC Toolkit.")
-        write_action("SOC Toolkit interrupted by user.", "logs")
+    except KeyboardInterrupt:
+        sys.exit("\nInterrupted by user.")
