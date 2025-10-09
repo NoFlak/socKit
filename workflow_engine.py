@@ -8,10 +8,19 @@ from pathlib import Path
 from typing import Any, Callable, Dict, Iterable, List, Optional
 
 import yaml
+import platform
+import shutil
+import subprocess
 
 from logging_utils import write_action
 from config import load_config
 
+from playbooks.handlers import (
+    nmap_top_ports,
+    osquery_snapshot,
+    tcpdump_capture,
+    winget_preview,
+)
 
 TaskCallable = Callable[..., Any]
 TASK_REGISTRY: Dict[str, TaskCallable] = {}
@@ -53,6 +62,38 @@ def _call_task(name: str, kwargs: Dict[str, Any]) -> Any:
             context={"task": name, "error": str(exc)},
         )
         raise WorkflowError(f"Task '{name}' raised an exception: {exc}") from exc
+
+
+def _winget_upgrade_task(*, include_unknown: bool = False, force: bool = False, dry_run: bool = True) -> str:
+    """Windows-only: Preview or perform winget upgrades.
+
+    - dry_run=True: returns preview list (first lines) and logs full output.
+    - dry_run=False and force=True: runs winget upgrade --all with agreements.
+    """
+    if platform.system() != "Windows":
+        raise WorkflowError("winget upgrade is supported on Windows only.")
+    if not shutil.which("winget"):
+        raise WorkflowError("winget CLI not found in PATH. Install App Installer from Microsoft Store.")
+
+    if dry_run:
+        args = ["winget", "upgrade"] + (["--include-unknown"] if include_unknown else [])
+    else:
+        if not force:
+            raise WorkflowError("Refusing to run upgrade without force=true.")
+        args = [
+            "winget", "upgrade", "--all",
+            "--accept-source-agreements", "--accept-package-agreements", "--silent",
+        ] + (["--include-unknown"] if include_unknown else [])
+
+    proc = subprocess.run(args, capture_output=True, text=True)
+    output = proc.stdout or proc.stderr or ""
+    preview = "\n".join(output.splitlines()[:40])
+    write_action(
+        f"winget {'preview' if dry_run else 'upgrade'} executed.",
+        context={"include_unknown": include_unknown, "dry_run": dry_run, "exit_code": proc.returncode},
+        detailed_results=output,
+    )
+    return preview
 
 
 def load_playbook(path: str | os.PathLike[str]) -> Dict[str, Any]:
@@ -124,12 +165,19 @@ def bootstrap_builtin_tasks() -> None:
         scheduled_task_auditor,
         power_settings_optimizer,
     )
+    from system_tool.provisioning import provision_users_from_csv
 
     # Wrapper to inject log_folder for system_tool tasks
     def _with_log_folder(func: Callable[..., Any]) -> TaskCallable:
         def runner() -> Any:
             cfg = load_config()
             return func(cfg.log_folder)
+        return runner
+
+    def _with_log_folder_args(func: Callable[..., Any]) -> TaskCallable:
+        def runner(csv_path: str, target: str = "ad") -> Any:
+            cfg = load_config()
+            return func(cfg.log_folder, csv_path, target)
         return runner
 
     task_map = {
@@ -167,6 +215,15 @@ def bootstrap_builtin_tasks() -> None:
         "system.startup_auditor": _with_log_folder(startup_program_auditor),
         "system.scheduled_tasks": _with_log_folder(scheduled_task_auditor),
         "system.power_settings": _with_log_folder(power_settings_optimizer),
+        # Admin provisioning
+        "admin.provision_from_csv": _with_log_folder_args(provision_users_from_csv),
+        # Admin winget upgrades (Windows-only)
+        "admin.winget_upgrade": _winget_upgrade_task,
+        # Playbook handlers (Phase 2)
+        "playbook.nmap_top_ports": nmap_top_ports,
+        "playbook.osquery_snapshot": osquery_snapshot,
+        "playbook.winget_preview": winget_preview,
+        "playbook.tcpdump_capture": tcpdump_capture,
     }
 
     for name, func in task_map.items():

@@ -1,0 +1,12 @@
+name: Admin WinGet Preview
+metadata:
+  operator: "unknown"
+  profile: "admin-local"
+  dry_run: true
+  origin: "agent"
+steps:
+  - task: admin.winget_upgrade
+    args:
+      include_unknown: true
+      dry_run: true
+

@@ -1,0 +1,118 @@
+# Data-driven menu manifest for socKit
+# Preserve PLACEHOLDER and TODO tokens in generated outputs.
+
+version: 1
+home:
+  title: "Cross-Platform SOC Toolkit"
+  entries:
+    - key: quick_health
+      label: "Quick Health"
+      type: workflow
+      workflow_steps:
+        - { task: system.overview }
+        - { task: system.services }
+        - { task: network.ping, args: { target: "8.8.8.8", count: 2 } }
+    - key: tools
+      label: "Tools"
+      type: submenu
+      target: tools
+    - key: workflows
+      label: "Workflows"
+      type: submenu
+      target: workflows
+    - key: blue
+      label: "Blue Team"
+      type: team
+      target: blue
+    - key: red
+      label: "Red Team"
+      type: team
+      target: red
+    - key: purple
+      label: "Purple Team"
+      type: team
+      target: purple
+    - key: help
+      label: "Help / Questionnaire"
+      type: help
+
+tools:
+  title: "Tools Hub"
+  categories:
+    - id: system
+      label: "System Tools"
+      items:
+        - { label: "System Overview", task: system.overview }
+        - { label: "Enumerate Services (preview)", task: system.services }
+        - { label: "Critical Path Inventory", task: system.paths }
+        - { label: "System File Checker", task: system.sfc }
+    - id: network
+      label: "Network Tools"
+      items:
+        - { label: "Ping Test", task: network.ping }
+        - { label: "DNS Health", task: network.dns_health }
+        - { label: "TCP Port Scan", task: network.tcp_scan }
+        - { label: "Nmap Top Ports (dry-run)", task: playbook.nmap_top_ports, args: { target: "lab-host", top_ports: 20, dry_run: true } }
+        - { label: "Tcpdump Capture (dry-run)", task: playbook.tcpdump_capture, args: { interface: "eth0", duration: 30, dry_run: true } }
+    - id: admin
+      label: "Admin Tools"
+      items:
+        - { label: "AdminSetup Submenu (PowerShell)", kind: ps1, script: SystemToolkit/AdminTools/AdminTools.ps1 }
+        - { label: "WinGet Upgrade (preview)", task: admin.winget_upgrade, args: { dry_run: true, include_unknown: true } }
+        - { label: "WinGet Preview (playbook)", task: playbook.winget_preview, args: { dry_run: true, include_unknown: true } }
+    - id: detailed_system
+      label: "Detailed System Toolkit"
+      items:
+        - { label: "Repair All", task: system.repair_all }
+        - { label: "Package Repair", task: system.package_repair }
+        - { label: "Disk Cleanup", task: system.disk_cleanup }
+        - { label: "Network Reset", task: system.network_reset }
+        - { label: "Resource Monitor", task: system.resource_monitor }
+        - { label: "GPU Monitor", task: system.gpu_monitor }
+        - { label: "Thermal Check", task: system.thermal_check }
+        - { label: "Startup Auditor", task: system.startup_auditor }
+        - { label: "Scheduled Tasks", task: system.scheduled_tasks }
+        - { label: "Power Settings", task: system.power_settings }
+    - id: analytics
+      label: "Analytics & Snapshot"
+      items:
+        - { label: "Osquery Snapshot (dry-run)", task: playbook.osquery_snapshot, args: { query: "SELECT * FROM os_version;", dry_run: true } }
+
+workflows:
+  title: "Curated Workflows"
+  entries:
+    - id: sys_quick
+      label: "System Quick Health"
+      steps:
+        - { task: system.overview }
+        - { task: system.services }
+        - { task: network.ping, args: { target: "8.8.8.8", count: 2 } }
+    - id: blue_baseline
+      label: "Blue Team Baseline"
+      steps:
+        - { task: blue.shadow }
+        - { task: blue.patch_status }
+        - { task: blue.file_integrity }
+    - id: red_recon
+      label: "Red Team Recon"
+      steps:
+        - { task: red.credential_exposure }
+        - { task: red.lateral_movement }
+    - id: purple_analytics
+      label: "Purple Analytics"
+      steps:
+        - { task: purple.dashboard }
+        - { task: purple.correlation }
+    - id: admin_winget_preview
+      label: "Admin: WinGet Upgrade (preview)"
+      steps:
+        - { task: admin.winget_upgrade, args: { include_unknown: true, dry_run: true } }
+    - id: red_emulation_safe
+      label: "Red Team Emulation (Safe Defaults)"
+      steps:
+        - { task: playbook.nmap_top_ports, args: { target: "lab-host", top_ports: 20, dry_run: true } }
+        - { task: playbook.osquery_snapshot, args: { query: "SELECT name, port, path FROM listening_ports LIMIT 10;", dry_run: true } }
+        - { task: playbook.tcpdump_capture, args: { interface: "eth1", duration: 15, dry_run: true } }
+        - { task: playbook.winget_preview, args: { include_unknown: true, dry_run: true } }
+
+# PLACEHOLDER: Additional menu items can be appended safely by generators.

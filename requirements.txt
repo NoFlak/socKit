@@ -7,3 +7,4 @@ psutil
 colorama
 paramiko
 distro
+boto3

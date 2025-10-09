@@ -20,7 +20,7 @@ class Config:
     default_scan_type: str = "Aggressive"
     playbooks_folder: str = "playbooks"
     artifacts_folder: str = "artifacts"
-    questionnaire_file: str = "docs/direction_questionnaire.md"
+    questionnaire_file: str = "docs/overview.md"
     # Security and hygiene
     secure_logs: bool = True
     log_retention_days: int = 30
