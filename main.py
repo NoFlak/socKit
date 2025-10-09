@@ -393,9 +393,11 @@ def _launch_gui(log_folder: str) -> None:
 
     # Ensure the soc_gui package (nested under soc_gui/) is importable.
     gui_package_path = gui_root / "soc_gui"
-    if gui_package_path.exists():
+    if gui_root.exists():
         existing_pp = env.get("PYTHONPATH")
-        parts = [str(gui_package_path)]
+        parts = [str(gui_root)]
+        if gui_package_path.exists():
+            parts.append(str(gui_package_path))
         if existing_pp:
             parts.append(existing_pp)
         env["PYTHONPATH"] = os.pathsep.join(parts)
