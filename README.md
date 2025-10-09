@@ -93,6 +93,15 @@ I had an older version with some tools built out already but lost some of it aft
    python -m pip install -r requirements.txt
    ```
 
+3. *(Optional)* Enable the standalone GUI (requires Qt/PySide6):
+
+   ```bash
+   python -m pip install -r soc_gui/requirements.txt
+   # launch with:
+   python main.py --gui
+   ```
+   If the GUI dependencies are missing, the CLI launcher will fall back gracefully and remind you to install them.
+
 ## Usage
 
 ### Interactive mode
