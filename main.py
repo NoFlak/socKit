@@ -391,6 +391,17 @@ def _launch_gui(log_folder: str) -> None:
         # Environment fallbacks are best-effort; ignore resolution errors.
         pass
 
+    # Ensure the soc_gui package (nested under soc_gui/) is importable.
+    gui_package_path = gui_root / "soc_gui"
+    if gui_package_path.exists():
+        existing_pp = env.get("PYTHONPATH")
+        parts = [str(gui_package_path)]
+        if existing_pp:
+            parts.append(existing_pp)
+        env["PYTHONPATH"] = os.pathsep.join(parts)
+    else:
+        print("[WARN] soc_gui package folder missing under soc_gui/soc_gui; GUI launch may fail.")
+
     print("[INFO] Launching SOC GUI (python -m soc_gui.app). Close the window to return to CLI.")
     try:
         result = subprocess.run(
