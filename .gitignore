@@ -32,3 +32,5 @@ build/
 dist/
 Logs/
 config.json
+soc_gui/
+soc_gui_backup/

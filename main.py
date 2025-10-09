@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 import platform
 import sys
 from pathlib import Path
@@ -111,6 +112,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--dry-run", action="store_true", help="Preview a playbook without executing tasks")
     parser.add_argument("--list-tasks", action="store_true", help="List all available workflow tasks")
     parser.add_argument("--questionnaire", action="store_true", help="Display the direction questionnaire")
+    parser.add_argument("--gui", action="store_true", help="Launch the optional SOC GUI instead of CLI menu")
     return parser.parse_args()
 
 
@@ -295,6 +297,45 @@ def _workflows_menu() -> None:
             print("Invalid selection.")
 
 
+def _launch_gui(log_folder: str) -> None:
+    """
+    Attempt to launch the optional PySide6-based GUI shipped under soc_gui/.
+
+    - If soc_gui is not present, inform the operator.
+    - Pass default log paths via environment variables so the GUI can pre-populate settings.
+    """
+    repo_root = Path(__file__).resolve().parent
+    gui_root = repo_root / "soc_gui"
+    if not gui_root.exists():
+        print("[WARN] soc_gui package not found in repository root. Ensure the GUI template is installed.")
+        return
+
+    env = os.environ.copy()
+    try:
+        env.setdefault("SOC_GUI_DEFAULT_LOG_PATH", str(Path(log_folder).resolve()))
+        jsonl_path = Path(log_folder).resolve() / "ToolkitLog.jsonl"
+        if jsonl_path.exists():
+            env.setdefault("SOC_GUI_DEFAULT_JSONL_PATH", str(jsonl_path))
+    except Exception:
+        # Environment fallbacks are best-effort; ignore resolution errors.
+        pass
+
+    print("[INFO] Launching SOC GUI (python -m soc_gui.app). Close the window to return to CLI.")
+    try:
+        result = subprocess.run(
+            [sys.executable, "-m", "soc_gui.app"],
+            cwd=repo_root,
+            env=env,
+            check=False,
+        )
+        if result.returncode not in (0, None):
+            print(f"[WARN] SOC GUI exited with code {result.returncode}. Check soc_gui/logs/app.log for details.")
+    except FileNotFoundError:
+        print("[ERROR] Unable to locate python executable for launching the GUI.")
+    except Exception as exc:  # noqa: BLE001
+        print(f"[ERROR] Failed to launch SOC GUI: {exc}")
+
+
 def interactive_menu(questionnaire_path: Path, *, log_folder: str) -> None:
     while True:
         print("\n==========================================")
@@ -307,7 +348,8 @@ def interactive_menu(questionnaire_path: Path, *, log_folder: str) -> None:
         print("5) Red Team")
         print("6) Purple Team")
         print("7) System Maintenance Toolkit")
-        print("8) Help / Questionnaire")
+        print("8) Launch SOC GUI")
+        print("9) Help / Questionnaire")
         print("Q) Quit")
         print("==========================================")
         choice = input("Select: ").strip().upper()
@@ -362,6 +404,8 @@ def interactive_menu(questionnaire_path: Path, *, log_folder: str) -> None:
         elif choice == "7":
             system_tools_menu(log_folder)
         elif choice == "8":
+            _launch_gui(log_folder)
+        elif choice == "9":
             display_questionnaire(questionnaire_path)
         elif choice == "Q":
             print("Exiting the toolkit. Goodbye!")
@@ -397,6 +441,10 @@ def main() -> None:
     if args.playbook:
         playbook_path = ensure_playbook(args.playbook)
         run_playbook(playbook_path, dry_run=args.dry_run)
+        return
+
+    if args.gui:
+        _launch_gui(config.log_folder)
         return
 
     print(f"Operating System Detected: {platform.system()}")
