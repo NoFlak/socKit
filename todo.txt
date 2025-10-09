@@ -27,8 +27,10 @@ GENERAL TOOLKIT
 - [ ] Config profiles for Windows/Linux
     - Detect OS & load appropriate configs
 - [ ] Exception handling & input sanitization throughout
-- [ ] Convert team tool folders to Python packages with `__init__.py` for importability
+- [x] Convert team tool folders to Python packages with `__init__.py` for importability
 - [ ] Ensure each tool defines a `run()` method or tool metadata for autodetection
+- [ ] Build graphical dashboard (web/desktop) to visualize ToolkitLog.csv/ToolkitLog.jsonl trends
+- [ ] Instrument usage analytics to surface most-run Blue/Red/Purple tasks
 
 
 BLUE TEAM TOOLS
@@ -44,9 +46,10 @@ BLUE TEAM TOOLS
     - Check common AV/firewall status via CLI
 
 SYSTEM & NETWORK DIAGNOSTICS
-- [ ] System File Checker (basic)
-- [ ] Ping Test with stats
-- [ ] IP and MAC Address Display
+- [x] System File Checker (basic)
+- [x] Ping Test with stats
+- [x] IP and MAC Address Display
+- [ ] Automated server baseline remediation playbooks (DISM, cleanup, reboot checks)
 
 ---------------------------------------------------
 Phase 2: Red Team Build-Out & Malware Scanning (Weeks 5-8)
@@ -93,6 +96,7 @@ Phase 4: Utility Expansion, Automation & Packaging (Weeks 13-16)
 ---------------------------------------------------
 
 UTILITY & FILE MGMT
+- [ ] Package GUI dashboard (standalone app or hosted service)
 - [ ] Directory listing with advanced filtering/export
 - [ ] File search with regex & hashing
 - [ ] Disk usage reports & cleanup tools
@@ -103,6 +107,8 @@ GENERAL TOOLKIT IMPROVEMENTS
 - [ ] Multi-threading or async improvements for parallel scans
 - [ ] Cross-platform packaging & installer creation
 - [ ] Automated updates & patching system
+- [ ] Artifact store cloud integration (MinIO/S3 promotion + retention policies)
+- [ ] Automated server/VM provisioning scripts (Install-WindowsFeature, Hyper-V/Azure, user/ACL setup)
 
 ---------------------------------------------------
 Suggested Work Order Summary July 22nd 2025

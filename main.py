@@ -306,7 +306,8 @@ def interactive_menu(questionnaire_path: Path, *, log_folder: str) -> None:
         print("4) Blue Team")
         print("5) Red Team")
         print("6) Purple Team")
-        print("7) Help / Questionnaire")
+        print("7) System Maintenance Toolkit")
+        print("8) Help / Questionnaire")
         print("Q) Quit")
         print("==========================================")
         choice = input("Select: ").strip().upper()
@@ -318,12 +319,49 @@ def interactive_menu(questionnaire_path: Path, *, log_folder: str) -> None:
         elif choice == "3":
             _workflows_menu()
         elif choice == "4":
-            blue_team_menu()
+            try:
+                blue_team_menu(log_folder=log_folder)
+            except TypeError:
+                try:
+                    blue_team_menu(log_folder)
+                except TypeError:
+                    try:
+                        blue_team_menu()
+                    except Exception as exc:  # noqa: BLE001
+                        print(f"[ERROR] Blue Team menu failed: {exc}")
+            except Exception as exc:  # noqa: BLE001
+                print(f"[ERROR] Blue Team menu failed: {exc}")
         elif choice == "5":
-            red_team_menu()
+            try:
+                red_team_menu()
+            except TypeError:
+                try:
+                    red_team_menu(log_folder=log_folder)
+                except TypeError:
+                    print("[WARN] Red Team menu signature unsupported; skipping log context.")
+                    try:
+                        red_team_menu()
+                    except Exception as exc:  # noqa: BLE001
+                        print(f"[ERROR] Red Team menu failed: {exc}")
+            except Exception as exc:  # noqa: BLE001
+                print(f"[ERROR] Red Team menu failed: {exc}")
         elif choice == "6":
-            purple_team_menu()
+            try:
+                purple_team_menu()
+            except TypeError:
+                try:
+                    purple_team_menu(log_folder=log_folder)
+                except TypeError:
+                    print("[WARN] Purple Team menu signature unsupported; skipping log context.")
+                    try:
+                        purple_team_menu()
+                    except Exception as exc:  # noqa: BLE001
+                        print(f"[ERROR] Purple Team menu failed: {exc}")
+            except Exception as exc:  # noqa: BLE001
+                print(f"[ERROR] Purple Team menu failed: {exc}")
         elif choice == "7":
+            system_tools_menu(log_folder)
+        elif choice == "8":
             display_questionnaire(questionnaire_path)
         elif choice == "Q":
             print("Exiting the toolkit. Goodbye!")

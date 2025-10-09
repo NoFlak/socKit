@@ -52,11 +52,14 @@ tools:
         - { label: "Ping Test", task: network.ping }
         - { label: "DNS Health", task: network.dns_health }
         - { label: "TCP Port Scan", task: network.tcp_scan }
+        - { label: "Nmap Top Ports (dry-run)", task: playbook.nmap_top_ports, args: { target: "lab-host", top_ports: 20, dry_run: true } }
+        - { label: "Tcpdump Capture (dry-run)", task: playbook.tcpdump_capture, args: { interface: "eth0", duration: 30, dry_run: true } }
     - id: admin
       label: "Admin Tools"
       items:
         - { label: "AdminSetup Submenu (PowerShell)", kind: ps1, script: SystemToolkit/AdminTools/AdminTools.ps1 }
         - { label: "WinGet Upgrade (preview)", task: admin.winget_upgrade, args: { dry_run: true, include_unknown: true } }
+        - { label: "WinGet Preview (playbook)", task: playbook.winget_preview, args: { dry_run: true, include_unknown: true } }
     - id: detailed_system
       label: "Detailed System Toolkit"
       items:
@@ -70,6 +73,10 @@ tools:
         - { label: "Startup Auditor", task: system.startup_auditor }
         - { label: "Scheduled Tasks", task: system.scheduled_tasks }
         - { label: "Power Settings", task: system.power_settings }
+    - id: analytics
+      label: "Analytics & Snapshot"
+      items:
+        - { label: "Osquery Snapshot (dry-run)", task: playbook.osquery_snapshot, args: { query: "SELECT * FROM os_version;", dry_run: true } }
 
 workflows:
   title: "Curated Workflows"
@@ -100,6 +107,12 @@ workflows:
       label: "Admin: WinGet Upgrade (preview)"
       steps:
         - { task: admin.winget_upgrade, args: { include_unknown: true, dry_run: true } }
+    - id: red_emulation_safe
+      label: "Red Team Emulation (Safe Defaults)"
+      steps:
+        - { task: playbook.nmap_top_ports, args: { target: "lab-host", top_ports: 20, dry_run: true } }
+        - { task: playbook.osquery_snapshot, args: { query: "SELECT name, port, path FROM listening_ports LIMIT 10;", dry_run: true } }
+        - { task: playbook.tcpdump_capture, args: { interface: "eth1", duration: 15, dry_run: true } }
+        - { task: playbook.winget_preview, args: { include_unknown: true, dry_run: true } }
 
 # PLACEHOLDER: Additional menu items can be appended safely by generators.
-

@@ -15,6 +15,12 @@ import subprocess
 from logging_utils import write_action
 from config import load_config
 
+from playbooks.handlers import (
+    nmap_top_ports,
+    osquery_snapshot,
+    tcpdump_capture,
+    winget_preview,
+)
 
 TaskCallable = Callable[..., Any]
 TASK_REGISTRY: Dict[str, TaskCallable] = {}
@@ -213,6 +219,11 @@ def bootstrap_builtin_tasks() -> None:
         "admin.provision_from_csv": _with_log_folder_args(provision_users_from_csv),
         # Admin winget upgrades (Windows-only)
         "admin.winget_upgrade": _winget_upgrade_task,
+        # Playbook handlers (Phase 2)
+        "playbook.nmap_top_ports": nmap_top_ports,
+        "playbook.osquery_snapshot": osquery_snapshot,
+        "playbook.winget_preview": winget_preview,
+        "playbook.tcpdump_capture": tcpdump_capture,
     }
 
     for name, func in task_map.items():

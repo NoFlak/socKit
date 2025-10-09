@@ -1,13 +1,13 @@
 # Update Verification Log
 
-## Last Feature Update
-- Commit: `3991a3b` — "GPT: Format and menu enhancements, continued--"
-- Branch: `work`
-- Verification: Prior to recording this note, `git status -sb` reported a clean working tree, indicating no pending merges or conflicts from that update.
+## Branch agent/menu-refactor-20251008-105551
+- Scope: Phase 1 (menu refactor) landed; Phase 2 (workflow handlers, artifact store, CI) in progress.
+- Status: Working tree currently includes data-driven menus, AutoMenu loader, quick health workflow, and new validation scripts. Phase 2 handlers and artifact store added in this pass.
+- Validation: `scripts/validate_repo.sh`, `pytest`, and `python tools/generate_menus.py --dry-run` are the required gated checks before PR.
 
-## Main-Branch Status Check
-- Local branches present: output of `git branch` lists only `work`; there is no local `main` branch to verify against.
-- Containment test: `git branch --contains 3991a3b` reports only `work`, confirming the recorded commit is not currently on a `main` branch in this repository snapshot.
+## Historical Reference
+- Commit: `3991a3b` - "GPT: Format and menu enhancements, continued--" (branch `work`).
+- Verification: At that time `git status -sb` was clean and the commit was not contained in a `main` branch.
 
-## Conclusion
-The most recent feature update is already merged into the `work` branch with no outstanding merge conflicts. If a `main` branch is later introduced or fetched from remote, rerun the containment test above to confirm propagation.
+## Next Action
+Run the validation checklist above, then open a PR from `agent/menu-refactor-20251008-105551` once Phase 2 tasks are fully exercised.

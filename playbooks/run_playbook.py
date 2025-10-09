@@ -2,12 +2,17 @@
 from __future__ import annotations
 
 import argparse
+import sys
 import time
 import uuid
 from pathlib import Path
 from typing import Any
 
 import yaml
+
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 
 from workflow_engine import run_playbook as engine_run
 
@@ -55,4 +60,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

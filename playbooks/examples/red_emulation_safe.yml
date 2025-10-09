@@ -1,0 +1,26 @@
+name: Red Team Emulation (Safe Defaults)
+exercise: true
+metadata:
+  profile: "red-team-lab"
+  dry_run: true
+  origin: "agent"
+  operator: "unknown"
+steps:
+  - task: playbook.nmap_top_ports
+    args:
+      target: "lab-host"
+      top_ports: 20
+      dry_run: true
+  - task: playbook.osquery_snapshot
+    args:
+      query: "SELECT name, port, path FROM listening_ports LIMIT 10;"
+      dry_run: true
+  - task: playbook.tcpdump_capture
+    args:
+      interface: "eth1"
+      duration: 15
+      dry_run: true
+  - task: playbook.winget_preview
+    args:
+      include_unknown: true
+      dry_run: true

@@ -29,3 +29,26 @@ def test_generator_dry_run(monkeypatch, capsys):
     py = generate_menus.render_py(menu)
     assert 'MENU =' in py
 
+
+def test_playbook_handlers_exposed():
+    path = Path('menus/menu.yml')
+    data = yaml.safe_load(path.read_text(encoding='utf-8'))
+    categories = data['tools'].get('categories', [])
+    tasks = []
+    for category in categories:
+        for item in category.get('items', []):
+            tasks.append(item.get('task'))
+    for expected in (
+        'playbook.nmap_top_ports',
+        'playbook.osquery_snapshot',
+        'playbook.winget_preview',
+        'playbook.tcpdump_capture',
+    ):
+        assert expected in tasks
+
+
+def test_red_emulation_workflow_present():
+    path = Path('menus/menu.yml')
+    data = yaml.safe_load(path.read_text(encoding='utf-8'))
+    workflow_ids = {entry.get('id') for entry in data['workflows'].get('entries', [])}
+    assert 'red_emulation_safe' in workflow_ids

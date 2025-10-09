@@ -1,5 +1,6 @@
 # Auto-generated AutoMenu.ps1 - SAMPLE
 # Generated from menus/menu.yml (static sample committed for reference)
+# PLACEHOLDER: Keep this sentinel so generators preserve manual edits.
 # To regenerate, run: python tools/generate_menus.py --force
 
 $ErrorActionPreference = 'Stop'
@@ -66,4 +67,3 @@ while ($true) {
   Invoke-AutoMenu -choice $sel
   Read-Host 'Press Enter to continue'
 }
-

@@ -7,6 +7,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, Optional
 
+from .artifact_store import ArtifactStore, get_store
+
 DEFAULT_BASE = Path("artifacts")
 
 
@@ -38,6 +40,7 @@ def write_artifact(
     dry_run: bool = True,
     log_path: Optional[str] = None,
     base: Path = DEFAULT_BASE,
+    store: ArtifactStore | None = None,
 ) -> Dict[str, Any]:
     """Write canonical artifact JSON under artifacts/json/<ts>/ and copy/move raw if provided.
 
@@ -74,7 +77,16 @@ def write_artifact(
         "dry_run": bool(dry_run),
         "log_path": log_path or "",
     }
-    out = json_dir / f"{tool}_{ts}.json"
+    rel_json = Path("json") / ts / f"{tool}_{ts}.json"
+    out = base / rel_json
     out.write_text(json.dumps(obj, indent=2), encoding="utf-8")
-    return obj
 
+    # Mirror to configured artifact store (local or remote).
+    try:
+        target_store = store or get_store()
+        target_store.save_json(relative_path=os.fspath(rel_json), document=obj)
+    except Exception:
+        # Store failures should not block artifact creation; callers can inspect logs.
+        pass
+
+    return obj

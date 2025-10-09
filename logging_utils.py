@@ -12,6 +12,7 @@ import csv
 import json
 import os
 from datetime import datetime
+from pathlib import Path
 from typing import Any, Dict, Iterable, Optional
 
 import platform
@@ -19,6 +20,7 @@ import re
 from datetime import datetime, timedelta
 
 from config import load_config
+from utils.csv_safe_writer import promote_shallow_copy, write_csv_rows_atomic
 
 
 def _secure_path(path: str, is_dir: bool) -> None:
@@ -108,9 +110,9 @@ def write_action(
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     context = context or {}
 
-    csv_path = os.path.join(log_dir, log_file)
-    json_path = os.path.join(log_dir, "ToolkitLog.jsonl")
-    detailed_path = os.path.join(log_dir, detailed_file)
+    csv_path = Path(log_dir) / log_file
+    json_path = Path(log_dir) / "ToolkitLog.jsonl"
+    detailed_path = Path(log_dir) / detailed_file
 
     # Sanitize sensitive fields if enabled
     message, context, detailed_results = _sanitize(
@@ -126,18 +128,43 @@ def write_action(
         csv_row[str(key)] = value
 
     try:
-        with open(csv_path, "a", newline="", encoding="utf-8") as csv_file:
-            writer = csv.DictWriter(csv_file, fieldnames=list(csv_row.keys()))
-            if csv_file.tell() == 0:
-                writer.writeheader()
-            writer.writerow(csv_row)
+        existing_rows: list[list[str]] = []
+        header: list[str] = []
+
+        if csv_path.exists():
+            try:
+                with csv_path.open("r", newline="", encoding="utf-8") as existing:
+                    reader = list(csv.reader(existing))
+            except OSError:
+                reader = []
+            if reader:
+                header = [col for col in reader[0]]
+                existing_rows = [list(row) for row in reader[1:]]
+
+        csv_keys = list(csv_row.keys())
+        if not header:
+            header = csv_keys.copy()
+        else:
+            for key in csv_keys:
+                if key not in header:
+                    header.append(key)
+                    for row in existing_rows:
+                        row.append("")
+            for row in existing_rows:
+                if len(row) < len(header):
+                    row.extend([""] * (len(header) - len(row)))
+
+        new_row = [str(csv_row.get(col, "")) for col in header]
+        result_path = write_csv_rows_atomic(csv_path, existing_rows + [new_row], header=header)
+        if result_path != csv_path:
+            promote_shallow_copy(result_path, csv_path)
 
         json_payload = {"timestamp": timestamp, "level": level.upper(), "message": message, "context": context}
-        with open(json_path, "a", encoding="utf-8") as json_file:
+        with json_path.open("a", encoding="utf-8") as json_file:
             json_file.write(json.dumps(json_payload) + "\n")
 
         if detailed_results:
-            with open(detailed_path, "a", encoding="utf-8") as detail_file:
+            with detailed_path.open("a", encoding="utf-8") as detail_file:
                 detail_file.write(f"\n{timestamp} [{level.upper()}]\n{message}\n{detailed_results}\n")
     except OSError as exc:
         print(f"Error writing log: {exc}")

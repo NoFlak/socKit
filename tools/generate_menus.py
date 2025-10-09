@@ -22,6 +22,10 @@ from pathlib import Path
 from typing import Any, Dict
 
 import yaml
+from builtins import print as builtin_print
+
+# Maintain an explicit module-level `print` binding for tests.
+print = builtin_print  # type: ignore[assignment]
 
 ROOT = Path(__file__).resolve().parents[1]
 MENU_PATH = ROOT / "menus" / "menu.yml"
@@ -130,4 +134,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
