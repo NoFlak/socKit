@@ -113,6 +113,15 @@ python main.py
 Use the menu to run diagnostics, open red/blue/purple modules, launch playbooks,
 or view the SOC strategy questionnaire.
 
+Common CLI tasks:
+
+| Command | Purpose |
+| --- | --- |
+| `python main.py --list-tasks` | Enumerate registered workflow tasks |
+| `python main.py --playbook <path>` | Run a YAML playbook (add `--dry-run` to simulate) |
+| `python main.py --manual [topic]` | Print inline instructions (`overview`, `gui`, `logging`, `playbooks`, `menus`, `artifact-store`) |
+| `python main.py --gui` | Launch the optional PySide6 dashboard (after installing GUI deps) |
+
 ### Workflow automation
 
 ```bash
@@ -123,4 +132,13 @@ python main.py --playbook playbooks/quick_health.yaml --dry-run
 
 Add new playbooks under `playbooks/` to orchestrate bespoke incident response or
 readiness checks. Registered task names are documented via `--list-tasks`.
+
+## Documentation & Guides
+
+- [docs/automenus.README.md](docs/automenus.README.md) – data-driven menus, generator usage, safeguards
+- [docs/csv.README.md](docs/csv.README.md) – atomic CSV writer, shallow-copy behavior
+- [docs/artifact_store_phase2.md](docs/artifact_store_phase2.md) – remote artifact store roadmap
+- [docs/gui_setup.md](docs/gui_setup.md) – installing and configuring the optional GUI
+- [Part1-README.md](Part1-README.md) / [Part2-README.md](Part2-README.md) – implementation notes and validation checklists
+- [docs/update_status.md](docs/update_status.md) – branch status & release checklist
 

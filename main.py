@@ -33,6 +33,71 @@ from utils import (
 )
 from workflow_engine import bootstrap_builtin_tasks, ensure_playbook, list_tasks, run_playbook
 
+MANUAL_TOPICS = {
+    "overview": """\
+socKit CLI quick reference:
+  python main.py              -> launch interactive menu
+  python main.py --list-tasks -> show registered workflow tasks
+  python main.py --playbook <path> [--dry-run]
+  python main.py --questionnaire -> print strategy questionnaire
+  python main.py --gui        -> launch optional PySide6 dashboard
+
+Docs:
+  - docs/automenus.README.md (data-driven menus)
+  - docs/csv.README.md (atomic CSV logging)
+  - docs/artifact_store_phase2.md (artifact store roadmap)
+  - Part1-README.md / Part2-README.md (implementation notes)""",
+    "gui": """\
+GUI usage:
+  1. Install dependencies: python -m pip install -r soc_gui/requirements.txt
+  2. Launch: python main.py --gui  (or python -m soc_gui.app inside soc_gui/)
+  3. In the GUI Settings tab, point the Logs path at your Logs/ directory.
+     (Env vars SOC_GUI_DEFAULT_LOG_PATH / SOC_GUI_DEFAULT_JSONL_PATH are prefilled when launching via main.py)
+  4. Troubleshoot issues via soc_gui/logs/app.log.""",
+    "logging": """\
+Logging pipeline:
+  - CSV: Logs/ToolkitLog.csv (atomic writes via utils/csv_safe_writer.py)
+  - JSONL: Logs/ToolkitLog.jsonl
+  - Detailed output: Logs/DetailedResults.txt
+  - Rotating HTML snapshots: logs/service_inventory.html, etc.
+  Reference docs/csv.README.md for fallback behavior when CSV is locked.""",
+    "playbooks": """\
+Playbooks:
+  - Sample workflows under playbooks/examples/
+  - Create new playbooks with python tools like playbooks/run_playbook.py
+    Example: python playbooks/run_playbook.py playbooks/examples/red_emulation_safe.yml --dry-run
+  - Registered tasks listed via python main.py --list-tasks
+  - Add handlers in playbooks/handlers.py and register them in workflow_engine.bootstrap_builtin_tasks().""",
+    "artifact-store": """\
+Artifact store:
+  - Default local mirror: artifacts/json/, artifacts/raw/, artifacts/remote_mirror/
+  - Remote mode (MinIO/S3) via env vars:
+      SOCKIT_ARTIFACT_STORE=s3|minio
+      SOCKIT_ARTIFACT_BUCKET=<bucket>
+      SOCKIT_ARTIFACT_ENDPOINT=<url>
+      SOCKIT_ARTIFACT_ACCESS_KEY / SOCKIT_ARTIFACT_SECRET_KEY
+  - See docs/artifact_store_phase2.md for upcoming cloud integration steps.""",
+    "menus": """\
+Menus & AutoMenu:
+  - Canonical manifest: menus/menu.yml
+  - Generator: python tools/generate_menus.py --dry-run
+  - Loader utilities: SystemToolkit/AdminTools/load_automenus.py
+  - Auto-generated PowerShell shim: SystemToolkit/AdminTools/AutoMenu.ps1
+  - See docs/automenus.README.md for editing rules and PLACEHOLDER notes.""",
+}
+
+
+def _print_manual(topic: str) -> None:
+    key = (topic or "overview").strip().lower()
+    content = MANUAL_TOPICS.get(key)
+    if content is None:
+        available = ", ".join(sorted(MANUAL_TOPICS.keys()))
+        print(f"[INFO] Unknown manual topic '{topic}'. Available topics: {available}")
+        return
+
+    heading = f"=== SOC Toolkit Manual: {key.replace('-', ' ').title()} ==="
+    print(f"\n{heading}\n{content}\n")
+
 
 def _first_run_setup(config) -> None:
     """Prompt for a log folder on first run if no config exists.
@@ -113,6 +178,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--list-tasks", action="store_true", help="List all available workflow tasks")
     parser.add_argument("--questionnaire", action="store_true", help="Display the direction questionnaire")
     parser.add_argument("--gui", action="store_true", help="Launch the optional SOC GUI instead of CLI menu")
+    parser.add_argument(
+        "--manual",
+        nargs="?",
+        const="overview",
+        help="Print usage instructions; optionally specify a topic (overview, gui, logging, playbooks, menus, artifact-store).",
+    )
     return parser.parse_args()
 
 
@@ -425,6 +496,10 @@ def main() -> None:
     create_directory(config.artifacts_folder)
 
     bootstrap_builtin_tasks()
+
+    if args.manual is not None:
+        _print_manual(args.manual)
+        return
 
     if args.list_tasks:
         print("\nAvailable Tasks:")
