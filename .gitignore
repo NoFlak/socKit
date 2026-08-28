@@ -10,6 +10,7 @@ logs/
 
 # Test artifacts and caches
 .pytest_cache/
+.pytest_tmp/
 *.pytest_cache/
 *.pytest_cache
 pip-log.txt
@@ -32,3 +33,7 @@ build/
 dist/
 Logs/
 config.json
+
+# Generated playbook runs and test scratch files
+playbooks/ephemeral/
+playbooks/tmp_test_pb.yml

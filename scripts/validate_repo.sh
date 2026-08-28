@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-echo "[validate_repo] Phase 2 checklist starting."
+echo "[validate_repo] Repository checklist starting."
 
 python -m compileall main.py workflow_engine.py playbooks || {
   echo "[validate_repo] Bytecode compilation failed." >&2
